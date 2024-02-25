@@ -1,0 +1,6 @@
+.terraform
+dist
+lib
+requirements-poetry.txt
+.terraform.*
+terraform.*
