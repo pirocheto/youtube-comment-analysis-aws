@@ -1,0 +1,40 @@
+openapi: "3.0.0"
+info:
+  title: "API to create a report from YouTube comments"
+  description: "API to create a report from YouTube comments"
+  version: "1.0.0"
+servers:
+  - url: ${url}
+
+
+paths:
+  /report:
+    get:
+      description: This endpoint starts execution of an AWS Step Functions workflow
+      responses:
+        '200':
+          description: The Step functions call was successful
+          
+      x-amazon-apigateway-integration:
+        responses:
+          '200': 
+            statusCode: 200
+            responseTemplates: 
+              application/json: |-
+                {
+                  "message": "Creation of the report executed successful"
+                }
+        passthroughBehavior: when_no_templates
+        httpMethod: POST
+        type: aws
+        uri: ${integration_uri}
+        credentials: ${integration_credentials}
+        integrationSubtype: StepFunctions-StartExecution
+        requestTemplates:
+          application/json: |-
+            #set($input = $input.json('$'))
+            {
+              "input": "$util.escapeJavaScript($input)",
+              "stateMachineArn": "$util.escapeJavaScript($stageVariables.StateMachineArn)"
+            }
+    
