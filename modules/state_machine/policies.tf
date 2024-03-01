@@ -86,7 +86,7 @@ resource "aws_iam_policy" "state_machine_policy" {
   })
 }
 
-resource "aws_iam_policy_attachment" "lambda_policy_attach" {
+resource "aws_iam_policy_attachment" "state_machine_policy_attach" {
   name       = var.iam_policy_attach_name
   roles      = [aws_iam_role.state_machine_role.name]
   policy_arn = aws_iam_policy.state_machine_policy.arn

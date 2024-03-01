@@ -37,6 +37,7 @@ resource "aws_lambda_layer_version" "dependency_layer" {
 }
 
 resource "aws_lambda_function" "lambda_function" {
+  tags             = var.tags
   description      = "Lambda function getting YouTube comments"
   filename         = data.archive_file.lambda_function.output_path
   function_name    = var.lambda_function_name

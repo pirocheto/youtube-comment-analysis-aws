@@ -30,3 +30,8 @@ variable "tags" {
   }
   description = "Tags to assign for each resource"
 }
+
+variable "region" {
+  type    = string
+  default = "eu-west-1"
+}

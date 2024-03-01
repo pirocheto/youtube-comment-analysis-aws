@@ -27,4 +27,9 @@ locals {
   state_machine_iam_role_name          = "${var.prefix}-state-machine-role"
   state_machine_iam_policy_name        = "${var.prefix}-state-machine-policy"
   state_machine_iam_policy_attach_name = "${var.prefix}-state-machine-attachment"
+
+  ######################################
+  ##### API to start State Machine #####
+  ######################################
+  api_name = "${var.prefix}-api"
 }

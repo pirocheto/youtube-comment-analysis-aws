@@ -1,5 +1,5 @@
 provider "aws" {
-  region = "eu-west-1"
+  region = var.region
 }
 
 module "lambda_function" {
@@ -42,4 +42,11 @@ module "state_machine" {
   iam_policy_name        = local.state_machine_iam_policy_name
   iam_policy_attach_name = local.state_machine_iam_policy_attach_name
   tags                   = var.tags
+}
+
+module "api_gateway" {
+  source            = "./modules/api_gateway"
+  api_name          = local.api_name
+  state_machine_arn = module.state_machine.state_machine_arn
+  region            = var.region
 }
