@@ -4,10 +4,16 @@ variable "prefix" {
   description = "Prefix for Terraform resource names (e.g., policies, roles, Lambda functions, etc.)."
 }
 
-variable "lambda_source_dir" {
+variable "lambda_data_source_dir" {
   type        = string
-  default     = "lambda_function"
-  description = "Source directory containing Lambda function code"
+  default     = "lambda_data"
+  description = "Source directory containing Lambda function code (data)"
+}
+
+variable "lambda_report_source_dir" {
+  type        = string
+  default     = "lambda_report"
+  description = "Source directory containing Lambda function code (report)"
 }
 
 variable "lambda_runtime" {

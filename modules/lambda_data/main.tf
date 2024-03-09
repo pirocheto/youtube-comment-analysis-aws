@@ -15,6 +15,8 @@ resource "null_resource" "install_dependencies" {
   }
 }
 
+
+
 data "archive_file" "dependency_layer" {
   type        = "zip"
   source_dir  = "${var.lambda_source_dir}/lib/"

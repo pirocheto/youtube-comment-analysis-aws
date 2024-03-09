@@ -66,7 +66,17 @@ resource "aws_sfn_state_machine" "state_machine" {
                 "SentimentScoreNegative.$" = "$.SentimentScore.Negative"
                 "SentimentScorePositive.$" = "$.SentimentScore.Positive"
                 "SentimentScoreNeutral.$"  = "$.SentimentScore.Neutral"
-              }
+              },
+              Retry = [
+                {
+                  ErrorEquals = [
+                    "States.ALL"
+                  ],
+                  BackoffRate     = 2,
+                  IntervalSeconds = 2,
+                  MaxAttempts     = 3
+                }
+              ]
               Next = "MergeSentiment"
             }
             MergeSentiment = {
@@ -100,19 +110,7 @@ resource "aws_sfn_state_machine" "state_machine" {
           }
         }
         ResultPath = "$.Output"
-        Next       = "LoadPartition"
-      }
-      LoadPartition = {
-        Type = "Task"
-        Parameters = {
-          "QueryString.$" = "States.Format('ALTER TABLE `${var.catalog_database_name}.${var.catalog_table_name}` ADD IF NOT EXISTS PARTITION (videoid=\\'{}\\') LOCATION \\'s3://${var.bucket_name}/processed/\\';', $.video_id)"
-          WorkGroup       = "primary"
-          ResultConfiguration = {
-            OutputLocation = "s3://${var.bucket_name}/athena-query-result"
-          }
-        }
-        Resource = "arn:aws:states:::athena:startQueryExecution.sync"
-        End      = true
+        End        = true
       }
     }
   })

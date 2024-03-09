@@ -5,3 +5,5 @@ requirements-poetry.txt
 .terraform.*
 terraform.*
 temp
+__pycache__
+# data*

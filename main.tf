@@ -2,19 +2,34 @@ provider "aws" {
   region = var.region
 }
 
-module "lambda_function" {
-  source                      = "./modules/lambda_function"
-  lambda_source_dir           = var.lambda_source_dir
+module "lambda_data" {
+  source                      = "./modules/lambda_data"
+  lambda_source_dir           = var.lambda_data_source_dir
   youtube_api_key_secret_name = var.youtube_api_key_secret_name
   bucket_name                 = local.bucket_name
-  lambda_function_name        = local.lambda_function_name
-  dependency_layer_name       = local.lambda_dependency_layer_name
+  lambda_function_name        = local.lambda_data_function_name
+  dependency_layer_name       = local.lambda_data_dependency_layer_name
   runtime                     = var.lambda_runtime
-  iam_policy_attach_name      = local.lambda_iam_policy_attach_name
-  iam_policy_name             = local.lambda_iam_policy_name
-  iam_role_name               = local.lambda_iam_role_name
+  iam_policy_attach_name      = local.lambda_data_iam_policy_attach_name
+  iam_policy_name             = local.lambda_data_iam_policy_name
+  iam_role_name               = local.lambda_data_iam_role_name
   tags                        = var.tags
 }
+
+# module "lambda_report" {
+#   source                 = "./modules/lambda_report"
+#   lambda_source_dir      = var.lambda_report_source_dir
+#   bucket_name            = local.bucket_name
+#   lambda_function_name   = local.lambda_report_function_name
+#   dependency_layer_name  = local.lambda_report_dependency_layer_name
+#   runtime                = var.lambda_runtime
+#   iam_policy_attach_name = local.lambda_report_iam_policy_attach_name
+#   iam_policy_name        = local.lambda_report_iam_policy_name
+#   iam_role_name          = local.lambda_report_iam_role_name
+#   tags                   = var.tags
+#   bucket_arn             = module.s3_bucket.bucket_arn
+#   region                 = var.region
+# }
 
 module "s3_bucket" {
   source      = "./modules/s3_bucket"
@@ -32,7 +47,7 @@ module "glue_catalog" {
 
 module "state_machine" {
   source                 = "./modules/state_machine"
-  lambda_function_arn    = module.lambda_function.lambda_function_arn
+  lambda_function_arn    = module.lambda_data.lambda_function_arn
   bucket_arn             = module.s3_bucket.bucket_arn
   bucket_name            = local.bucket_name
   catalog_database_name  = local.catalog_database_name
