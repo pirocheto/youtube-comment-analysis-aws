@@ -1,11 +1,13 @@
 import json
 import os
+from datetime import datetime
 
 import boto3
 import requests
 
 API_URL = f"https://youtube.googleapis.com/youtube/v3/commentThreads"
 BUCKET_NAME = os.environ["BUCKET_NAME"]
+AWS_REGION = os.environ["AWS_REGION"]
 API_KEY_SECRET_NAME = os.environ["YOUTUBE_API_KEY_SECRET_NAME"]
 
 
@@ -58,25 +60,27 @@ def format_comment(comment):
 
     if "authorChannelId" in comment:
         comment["authorChannelId"] = comment["authorChannelId"]["value"]
+    else:
+        comment["authorChannelId"] = None
 
+    comment["parentId"] = comment.get("parentId", None)
     return comment
 
 
-def push_comment(comment, s3):
-    comment = format_comment(comment)
-
-    comment_id = comment["id"]
-    video_id = comment["videoId"]
-
-    key = f"landing/videoid={video_id}/{comment_id}.json"
+def upload_comments(comments, video_id, s3):
+    time = datetime.now().strftime("%Y%m%d-%H%M%S.%f")
+    key = f"landing/{video_id}-{time}.json"
+    # key = "landing/Ps5kScYvQQk-20240309-154310.784770.json"
 
     s3.put_object(
         Bucket=BUCKET_NAME,
         Key=key,
-        Body=json.dumps(comment),
+        Body=json.dumps(comments),
         ContentType="application/json",
         ContentEncoding="utf8",
     )
+
+    return key
 
 
 def lambda_handler(event, context):
@@ -87,6 +91,8 @@ def lambda_handler(event, context):
     retrieved_comments = 0
     next_page_token = None
 
+    comments = []
+
     while next_page_token is not False:
         data = get_page(
             video_id=video_id,
@@ -95,21 +101,32 @@ def lambda_handler(event, context):
 
         for item in data["items"]:
             comment = item["snippet"]["topLevelComment"]
-            push_comment(comment, s3)
-            retrieved_comments += 1
+            comment = format_comment(comment)
+            comments.append(comment)
 
             if "replies" in item:
                 for comment in item["replies"]["comments"]:
-                    push_comment(comment, s3)
-                    retrieved_comments += 1
+                    comment = format_comment(comment)
+                    comments.append(comment)
 
         next_page_token = data.get("nextPageToken", False)
 
+    retrieved_comments = len(comments)
+    key = upload_comments(comments, video_id, s3)
+
     return {
         "video_id": video_id,
-        "bucket": {
-            "name": BUCKET_NAME,
-            "prefix": f"landing/videoid={video_id}",
+        "output": {
+            "bucket_name": BUCKET_NAME,
+            "bucket_key": key,
+            "s3_uri": f"s3://{BUCKET_NAME}/{key}",
+            "object_url": f"https://{BUCKET_NAME}.s3.{AWS_REGION}.amazonaws.com/{key}",
         },
         "retrieved_comments": retrieved_comments,
     }
+
+
+if __name__ == "__main__":
+    from pprint import pprint
+
+    pprint(lambda_handler({"video_id": "Ps5kScYvQQk"}, None))

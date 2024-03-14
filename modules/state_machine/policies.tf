@@ -24,9 +24,14 @@ resource "aws_iam_policy" "state_machine_policy" {
     Version = "2012-10-17",
     Statement = [
       {
-        Effect   = "Allow",
-        Action   = "lambda:InvokeFunction"
-        Resource = var.lambda_function_arn
+        Effect = "Allow",
+        Action = "lambda:InvokeFunction"
+        Resource = [
+          var.lambda_data_function_arn,
+          var.lambda_transform_function_arn,
+          var.lambda_format_function_arn,
+          var.lambda_analyze_function_arn,
+        ]
       },
       {
         Effect = "Allow",
@@ -38,50 +43,10 @@ resource "aws_iam_policy" "state_machine_policy" {
         Resource = "${var.bucket_arn}*"
       },
       {
-        Effect   = "Allow",
-        Action   = "comprehend:DetectSentiment"
-        Resource = "*"
-      },
-      {
         Effect   = "Allow"
         Action   = "states:StartExecution"
         Resource = aws_sfn_state_machine.state_machine.arn
       },
-      {
-        Effect = "Allow",
-        Action = [
-          "states:DescribeExecution",
-          "states:StopExecution"
-        ],
-        Resource = "arn:aws:states:*:*:execution:${aws_sfn_state_machine.state_machine.name}:*"
-      },
-      {
-        Effect = "Allow"
-        Action = [
-          "athena:StartQueryExecution",
-          "athena:GetQueryResults",
-          "athena:GetQueryExecution",
-        ]
-        Resource = "*"
-      },
-      {
-        Effect   = "Allow"
-        Action   = "s3:GetBucketLocation"
-        Resource = "*"
-      },
-      {
-        Effect = "Allow"
-        Action = [
-          "glue:GetTable",
-          "glue:GetPartition",
-          "glue:BatchCreatePartition"
-        ]
-        Resource = [
-          "arn:aws:glue:*:*:database/*",
-          "arn:aws:glue:*:*:table/*",
-          "arn:aws:glue:*:*:catalog",
-        ]
-      }
     ]
   })
 }

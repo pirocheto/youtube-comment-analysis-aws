@@ -6,8 +6,26 @@ variable "prefix" {
 
 variable "lambda_data_source_dir" {
   type        = string
-  default     = "lambda_data"
+  default     = "01_lambda_data"
   description = "Source directory containing Lambda function code (data)"
+}
+
+variable "lambda_transform_source_dir" {
+  type        = string
+  default     = "02_lambda_transform"
+  description = "Source directory containing Lambda function code (transform)"
+}
+
+variable "lambda_format_source_dir" {
+  type        = string
+  default     = "03_lambda_format"
+  description = "Source directory containing Lambda function code (format)"
+}
+
+variable "lambda_analyze_source_dir" {
+  type        = string
+  default     = "04_lambda_analyze"
+  description = "Source directory containing Lambda function code (analyze)"
 }
 
 variable "lambda_report_source_dir" {

@@ -4,14 +4,14 @@ resource "aws_sfn_state_machine" "state_machine" {
   tags     = var.tags
 
   definition = jsonencode({
-    StartAt = "GetComments"
-    States = {
-      GetComments = {
+    StartAt = "Lambda Data"
+    "States" : {
+      "Lambda Data" = {
         Type       = "Task"
         Resource   = "arn:aws:states:::lambda:invoke"
         OutputPath = "$.Payload",
         Parameters = {
-          FunctionName = var.lambda_function_arn
+          FunctionName = var.lambda_data_function_name
           Payload = {
             video_id = "Ps5kScYvQQk"
           }
@@ -29,88 +29,79 @@ resource "aws_sfn_state_machine" "state_machine" {
             BackoffRate     = 2
           }
         ]
-        Next = "AnalyzeComments"
-      },
-      AnalyzeComments = {
-        Type = "Map"
-        ItemProcessor = {
-          ProcessorConfig = {
-            Mode          = "DISTRIBUTED"
-            ExecutionType = "STANDARD"
-          },
-          StartAt = "OpenFile"
-          States = {
-            OpenFile = {
-              Type = "Task"
-              Parameters = {
-                Bucket  = var.bucket_name
-                "Key.$" = "$.Key"
-              },
-              Resource = "arn:aws:states:::aws-sdk:s3:getObject"
-              ResultSelector = {
-                "Body.$" = "States.StringToJson($.Body)"
-              },
-              Next = "DetectSentiment"
-            },
-            DetectSentiment = {
-              Type = "Task"
-              Parameters = {
-                LanguageCode = "fr"
-                "Text.$"     = "$.Body.textOriginal"
-              }
-              Resource   = "arn:aws:states:::aws-sdk:comprehend:detectSentiment"
-              ResultPath = "$.Sentiment"
-              ResultSelector = {
-                "Sentiment.$"              = "$.Sentiment"
-                "SentimentScoreMixed.$"    = "$.SentimentScore.Mixed"
-                "SentimentScoreNegative.$" = "$.SentimentScore.Negative"
-                "SentimentScorePositive.$" = "$.SentimentScore.Positive"
-                "SentimentScoreNeutral.$"  = "$.SentimentScore.Neutral"
-              },
-              Retry = [
-                {
-                  ErrorEquals = [
-                    "States.ALL"
-                  ],
-                  BackoffRate     = 2,
-                  IntervalSeconds = 2,
-                  MaxAttempts     = 3
-                }
-              ]
-              Next = "MergeSentiment"
-            }
-            MergeSentiment = {
-              Type       = "Pass"
-              OutputPath = "$.Result"
-              Parameters = {
-                "Result.$" = "States.JsonMerge($.Body, $.Sentiment, false)"
-              }
-              Next = "PutObject"
-            }
-            PutObject = {
-              Type = "Task"
-              End  = true
-              Parameters = {
-                "Body.$"    = "$"
-                Bucket      = var.bucket_name
-                ContentType = "application/json"
-                "Key.$"     = "States.Format('processed/videoid={}/{}.json', $.videoId, $.id)"
-              }
-              Resource = "arn:aws:states:::aws-sdk:s3:putObject"
-            }
-          }
+        Next = "Lambda Transform"
+      }
+      "Lambda Transform" = {
+        Type       = "Task"
+        Resource   = "arn:aws:states:::lambda:invoke"
+        OutputPath = "$.Payload"
+        Parameters = {
+          "Payload.$"  = "$"
+          FunctionName = var.lambda_transform_function_name
         }
-        Label          = "Map"
-        MaxConcurrency = 100
-        ItemReader = {
-          Resource = "arn:aws:states:::s3:listObjectsV2"
-          Parameters = {
-            "Bucket.$" = "$.bucket.name",
-            "Prefix.$" = "$.bucket.prefix"
+        Retry = [
+          {
+            ErrorEquals = [
+              "Lambda.ServiceException",
+              "Lambda.AWSLambdaException",
+              "Lambda.SdkClientException",
+              "Lambda.TooManyRequestsException"
+            ],
+            IntervalSeconds = 1
+            MaxAttempts     = 3
+            BackoffRate     = 2
           }
+        ]
+        Next      = "Lambda Format"
+        InputPath = "$.output"
+      }
+      "Lambda Format" = {
+        Type       = "Task"
+        Resource   = "arn:aws:states:::lambda:invoke"
+        OutputPath = "$.Payload"
+        Parameters = {
+          "Payload.$"  = "$"
+          FunctionName = var.lambda_format_function_name
         }
-        ResultPath = "$.Output"
-        End        = true
+        Retry = [
+          {
+            ErrorEquals = [
+              "Lambda.ServiceException",
+              "Lambda.AWSLambdaException",
+              "Lambda.SdkClientException",
+              "Lambda.TooManyRequestsException"
+            ],
+            IntervalSeconds = 1
+            MaxAttempts     = 3
+            BackoffRate     = 2
+          }
+        ],
+        Next      = "Lambda Analyze"
+        InputPath = "$.output"
+      }
+      "Lambda Analyze" = {
+        Type       = "Task"
+        Resource   = "arn:aws:states:::lambda:invoke"
+        OutputPath = "$.Payload"
+        Parameters = {
+          "Payload.$"  = "$"
+          FunctionName = var.lambda_analyze_function_name
+        }
+        Retry = [
+          {
+            ErrorEquals = [
+              "Lambda.ServiceException",
+              "Lambda.AWSLambdaException",
+              "Lambda.SdkClientException",
+              "Lambda.TooManyRequestsException"
+            ]
+            IntervalSeconds = 1,
+            MaxAttempts     = 3,
+            BackoffRate     = 2
+          }
+        ]
+        End       = true,
+        InputPath = "$.output"
       }
     }
   })
